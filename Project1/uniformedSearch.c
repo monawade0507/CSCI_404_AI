@@ -42,7 +42,7 @@ void UniformedSearch::readFile() {
     exit(EXIT_FAILURE);
   }
   else {
-    printf("Successfully opened: %s\n", this->fileName);
+    //printf("Successfully opened: %s\n", this->fileName);
   }
 
   // file is open
@@ -50,10 +50,10 @@ void UniformedSearch::readFile() {
   while ((read = getline(&line, &len, fp)) != -1) {
     // end of file detected
     if (strstr(line, "END OF INPUT") != NULL) {
-      printf("End of File Found\n");
+      //printf("End of File Found\n");
       return;
     } else {
-      // printf("line: %s\n", line);
+      
       // input city into the tree
       if (begin == 0) {
         // seperate the cities
@@ -76,25 +76,22 @@ void UniformedSearch::readFile() {
             token = strtok(NULL, " ");
             count ++;
         }
-        // printf("Start city: %s\n", start);
-        // printf("End city: %s\n", end);
-        // printf("Distance: %s\n", dist);
+        
 
         // create the beginning node
-        strcpy(this->treeMap[this->amountOfTreeMaps]->name, start);
-        this->treeMap[this->amountOfTreeMaps]->distance = 0;
+        strcpy(this->treeMap->name, start);
+        this->treeMap->distance = 0;
         for (int i = 0; i < 10; i++) {
-          this->treeMap[this->amountOfTreeMaps]->child[i] = NULL;
+          this->treeMap->child[i] = NULL;
         }
 
         // add node to child array
-        this->treeMap[this->amountOfTreeMaps]->child[0] = this->createNode(end, atoi(dist));
+        this->treeMap->child[0] = this->createNode(end, atoi(dist));
 
         // increment begin
         begin++;
 
-        // check treeMap
-        printf("TreeMap conains the top city: %s ; The distance associated with the top city %d ; The child city: %s ; The distance between the child city and the parent: %d \n", this->treeMap[this->amountOfTreeMaps]->name, this->treeMap[this->amountOfTreeMaps]->distance, this->treeMap[this->amountOfTreeMaps]->child[0]->name, this->treeMap[this->amountOfTreeMaps]->child[0]->distance);
+        
       }
       // else not the beginning city for the map
       else {
@@ -119,18 +116,9 @@ void UniformedSearch::readFile() {
             token = strtok(NULL, " ");
             count ++;
         }
-        printf("\n");
-        // printf("Other Start city: %s\n", otherStart);
-        // printf("Other End city: %s\n", otherEnd);
-        // printf("Other Distance: %s\n", otherDist);
-
-        // need to look for 'otherStart' in treeMap before doing insertion
-        if (searchTreeMap(this->treeMap[this->amountOfTreeMaps], otherStart) ||
-            searchTreeMap(this->treeMap[this->amountOfTreeMaps], otherEnd)) {
-          this->insertChild(this->treeMap[this->amountOfTreeMaps], otherStart, otherEnd, atoi(otherDist));
-        } else {
-          this->amountOfTreeMaps++;
-        }
+        
+        this->insertChild(this->treeMap, otherStart, otherEnd, atoi(otherDist));
+	            
         begin++;
       }
     }
@@ -167,16 +155,10 @@ void UniformedSearch::insertChild(struct node *root, char start[40], char end[40
   for (int i = 0; i < 10; i++) {
     if (root->child[i] != NULL) {
       if(strstr(root->child[i]->name, start) != NULL) {   // found
-        printf("Found matching child location and starting location :: path { %s -> %s } to { %s -> %s } \n",
-                root->name, root->child[i]->name, start, end);
         root->child[i]->amountOfChildren++;
-        printf("Root city %s has this amount of childrent cities: %d \n",
-                root->name, root->child[i]->amountOfChildren);
         int t = root->child[i]->amountOfChildren;
-        root->child[i]->child[t/*root->child[i]->amountOfChildren*/] = createNode(end, dist);
+        root->child[i]->child[t] = createNode(end, dist);
       } else {
-        // printf("NO matching child location and starting location :: path { %s -> %s } to { %s -> %s } \n",
-        //         root->name, root->child[i]->name, start, end);
         insertChild(root->child[i], start, end, dist);
       }
     }
@@ -184,20 +166,126 @@ void UniformedSearch::insertChild(struct node *root, char start[40], char end[40
 }
 
 // searching for an end node; testing existance
-bool UniformedSearch::searchTreeMap(struct node* testRoot, char start[40]) {
-  if(testRoot == NULL) {
-    return false;
-  }
+void UniformedSearch::searchTreeMap(struct node* testRoot, char start[40]) {
 
   for (int i = 0; i < 10; i++) {
-    if (testRoot->child[i] == NULL) {
-      continue;
-    } else {
-      if (strstr(testRoot->child[i]->name, start) != NULL) {
-        return true;
+    if (testRoot->child[i] != NULL) {
+      if (strcmp(testRoot->name, start) == 0){
+        this->found = true;  // found the test city in the current treeMap
       } else {
         searchTreeMap(testRoot->child[i], start);
       }
     }
   }
+
+}
+
+void UniformedSearch::showTreeMap(struct node* root) {
+  if (root == NULL) {
+    return;
+  }
+  printf("Current city ( %s ) has the following connected cities ... ", root->name);
+  for (int i = 0; i < 10; i++) {
+    if (root->child[i] != NULL && root->child[i]->name != NULL)
+      printf (" %s ;", root->child[i]->name);
+  }
+ 
+  // need to look at each vaild child
+  for (int i = 0; i < 10; i++) {
+    if (root->child[i] != NULL && root->child != NULL) {
+      this->showTreeMap(root->child[i]);
+    } 
+  }
+}
+
+void UniformedSearch::printPath (struct node* root, struct node* cont) {
+  if (strcmp(root->name,this->originCity) == 0) {
+    this->foundOrigin = true;
+    strcpy(cont->name, this->originCity);
+    cont->distance = root->distance;
+    //printf("found Origin city ( %s  ) in tree \n", root->name);
+  }
+  if (strcmp(root->name, this->destinationCity) == 0) {
+    this->foundDestination = true;
+    // add the desination city to the path
+    strcpy(cont->name, this->destinationCity);
+    cont->distance = root->distance;
+    //printf("Found destination city ( %s ) in tree \n", cont->name);
+    return;
+  }
+
+  // need to look through treeMap
+  for (int i = 0; i < 10; i++) {
+    if (root->child[i] != NULL) {
+      // two ways to move through tree
+      if (this->foundDestination) {
+        strcpy(cont->name, root->name);
+        cont->distance = root->distance;
+        return;
+      }
+      if (this->foundOrigin) {
+        strcpy(cont->name, root->name);
+        cont->distance = root->distance;
+        cont->child[0] = (struct node*) malloc(sizeof(struct node));
+        printPath(root->child[i], cont->child[0]);
+      } else {
+        printPath(root->child[i], cont);
+      }
+    }
+  }
+}
+
+void UniformedSearch::calculate (struct node* root) {
+  if (root == NULL) return;
+ 
+  this->total += root->distance;
+  this->calculate(root->child[0]);
+}
+
+void UniformedSearch::showPath (struct node* root) {
+  if (root == NULL) return;
+  
+  printf("% s , %d km \n", root->name, root->distance);
+  this->showPath(root->child[0]);
+}
+  
+void UniformedSearch::start() {
+  //showTreeMap(this->treeMap);
+  // find the orgin and destination city in treeMap
+  bool origin;
+  bool dest;
+  
+  this->found = false;
+  this->searchTreeMap(this->treeMap, this->originCity);
+  origin = this->found;
+  
+  this->found = false;
+  this->searchTreeMap(this->treeMap, this->destinationCity);
+  dest = this->found;
+
+  if (!origin || !dest) {
+    printf("distance: infinity \n");
+    printf("route: \n");
+    printf("none \n");
+    return;
+  } 
+  
+  this->foundOrigin = false;
+  this->foundDestination = false;
+  this->action = 0;
+  this->found = false;
+  this->printPath(this->treeMap, this->path);
+
+  if (!this->foundOrigin || !this->foundDestination) {
+    printf("distance: infinity\n");
+    printf("route: \n");
+    printf("none \n");
+    return;
+  }
+
+  // if all the above conditions fail, that means a path exist
+  //printf("Path starts with ... %s \n", this->path->name);
+  this->calculate(this->path);
+  printf("distance: %d km \nroute: \n", this->total);
+  this->showPath(this->path);
 }
